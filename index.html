@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hacker114 DB</title>
+<link rel="icon" href="/images/favicon.png">
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --glass-bg: rgba(255,255,255,0.09);
+  --glass-border: rgba(255,255,255,0.22);
+  --text: #f5f5f7;
+  --text-soft: #a1a1aa;
+  --accent: #3b82f6;
+  --radius-lg: 18px;
+  --radius-md: 12px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  overflow: auto;
+}
+.frame {
+  width: min(1480px, 100vw - 40px);
+  height: min(860px, 100vh - 40px);
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(26px);
+  display: grid;
+  grid-template-columns: 460px minmax(0,1fr);
+  overflow: hidden;
+}
+.sidebar {
+  padding: 36px 32px 28px;
+  border-right: 1px solid rgba(255,255,255,0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  overflow-y: auto;
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+.brand-logo {
+  width: 38px; height: 38px; border-radius: 12px; padding: 3px;
+  background: rgba(255,255,255,0.18); backdrop-filter: blur(10px);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-logo img { width: 100%; height: 100%; border-radius: 9px; object-fit: cover; }
+.brand-title { font-size: 17px; font-weight: 600; }
+.brand-sub { font-size: 11.5px; color: var(--text-soft); }
+.card {
+  background: var(--glass-bg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(20px);
+  padding: 22px;
+}
+label { font-size: 11.5px; color: var(--text-soft); margin-bottom: 7px; display: block; }
+input, select, textarea {
+  width: 100%;
+  padding: 10px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(15,15,15,0.75);
+  color: var(--text);
+  font-size: 13px;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.3);
+  outline: none;
+}
+button {
+  padding: 12px 18px;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #1f2937, #374151);
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:hover { background: linear-gradient(135deg, #374151, #4b5563); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+.accent-btn { background: linear-gradient(135deg, var(--accent), #2563eb); color: white; }
+.main {
+  padding: 28px 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+.main-header { display: flex; justify-content: space-between; align-items: center; }
+.main-title { font-size: 20px; font-weight: 600; }
+.main-sub { font-size: 12px; color: var(--text-soft); margin-top: 4px; }
+.header-actions { display: flex; gap: 10px; align-items: center; }
+.small-btn { padding: 8px 14px; border-radius: 999px; font-size: 12.5px; }
+.status {
+  font-size: 12.5px;
+  color: var(--text-soft);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.status-dot { width: 10px; height: 10px; border-radius: 999px; background: #52525b; }
+.status-dot.ok { background: #22c55e; }
+.panel {
+  flex: 1;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--glass-border);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(22px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 60px 50px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 26px;
+}
+.big-btn {
+  width: 100%;
+  max-width: 460px;
+  padding: 22px 32px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 18px;
+  text-align: center;
+}
+.data-table-wrapper {
+  overflow: auto;
+  max-height: 100%;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+}
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+  min-width: 1200px;
+}
+th, td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  position: relative;
+}
+th {
+  font-size: 12px;
+  color: var(--text-soft);
+  position: sticky;
+  top: 0;
+  background: rgba(10,10,10,0.96);
+  backdrop-filter: blur(10px);
+  z-index: 2;
+}
+th .col-name { font-size: 12.5px; color: #e5e7eb; }
+th .col-type { font-size: 11px; color: #9ca3af; margin-top: 2px; }
+td[contenteditable="true"] {
+  background: rgba(59,130,246,0.12);
+  outline: 1px solid rgba(59,130,246,0.7);
+  cursor: text;
+}
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.82);
+  backdrop-filter: blur(14px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal.show { display: flex; }
+.modal-content {
+  width: 94%;
+  max-width: 1350px;
+  max-height: 92vh;
+  background: rgba(18,18,18,0.98);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  padding: 20px 28px;
+  border-bottom: 1px solid rgba(255,255,255,0.16);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-body { flex: 1; overflow: auto; padding: 24px; }
+.modal-close {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 18px;
+  background: rgba(31,41,55,0.9);
+}
+.empty {
+  padding: 110px 50px;
+  text-align: center;
+  color: var(--text-soft);
+  font-size: 16px;
+}
+.error-msg { color: #f87171; margin-top: 10px; font-size: 13px; }
+.toolbar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.check-row { display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:13px;cursor:pointer; }
+.check-input { position:absolute;opacity:0;pointer-events:none; }
+.check-box { width:16px;height:16px;border-radius:4px;border:1px solid #4b5563;display:flex;align-items:center;justify-content:center;font-size:11px;color:white; }
+.check-input:checked + .check-box { background:#3b82f6;border-color:#3b82f6; }
+</style>
+</head>
+<body>
+<div class="frame">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo"><img src="/images/favicon.png" alt=""></div>
+      <div>
+        <div class="brand-title">VexaCloud</div>
+        <div class="brand-sub">Advanced DB Explorer</div>
+      </div>
+    </div>
+    <div class="card">
+      <label for="provider">Provider</label>
+      <select id="provider">
+        <option value="supabase">Supabase</option>
+        <option value="firebase">Firebase</option>
+      </select>
+
+      <div id="supabaseFields" style="margin-top:10px;">
+        <label for="sbUrl">Supabase URL</label>
+        <input id="sbUrl" placeholder="https://project.supabase.co">
+        <label for="sbKey">Key</label>
+        <input id="sbKey" placeholder="eyJhbGciOi...">
+        <label for="schemaSelect">Schema</label>
+        <select id="schemaSelect">
+          <option value="public">public</option>
+          <option value="auth">auth</option>
+          <option value="storage">storage</option>
+          <option value="custom">Custom Schema...</option>
+        </select>
+        <input id="customSchema" placeholder="my_schema" style="display:none; margin-top:8px;">
+        <label for="sbMode">Detection Mode</label>
+        <select id="sbMode">
+          <option value="auto_rest">Auto via REST</option>
+          <option value="auto_view">Auto via _tables</option>
+          <option value="manual">Manual only</option>
+        </select>
+      </div>
+
+      <div id="firebaseFields" style="display:none;margin-top:10px;">
+        <label for="fbProjectId">Project ID</label>
+        <input id="fbProjectId" placeholder="my-project-123">
+        <label for="fbApiKey">API Key</label>
+        <input id="fbApiKey" placeholder="AIzaSy...">
+      </div>
+
+      <label for="tablesInput" style="margin-top:10px;">Tables / Collections (optional)</label>
+      <textarea id="tablesInput" placeholder="users, posts, profiles" rows="3"></textarea>
+      <button id="connectBtn" style="margin-top:16px;width:100%;">Connect</button>
+      <div id="connectError" class="error-msg"></div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="main-header">
+      <div>
+        <div class="main-title" id="mainTitle">Hacker114 Viewer</div>
+        <div class="main-sub" id="mainSub"></div>
+      </div>
+      <div class="header-actions">
+        <button id="sqlEditorBtn" class="small-btn" disabled>SQL Editor</button>
+        <button id="exportBtn" class="small-btn" disabled>Export</button>
+        <div class="status" id="statusContainer">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText">Idle</span>
+        </div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-inner" id="panelInner">
+        <div class="empty">Connect to a database to begin.</div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="sqlModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">SQL Editor</div>
+      <button class="modal-close">×</button>
+    </div>
+    <div class="modal-body">
+      <textarea id="sqlTextarea" style="width:100%;height:260px;font-family:monospace;background:#111;color:#ddd;padding:16px;border-radius:12px;" placeholder="SELECT * FROM public.my_table LIMIT 100;"></textarea>
+      <div style="margin:16px 0;display:flex;gap:12px;">
+        <button id="runSqlBtn" class="accent-btn">Run Query</button>
+        <button id="clearSqlBtn">Clear</button>
+      </div>
+      <div id="sqlResult" style="background:#111;border-radius:12px;padding:18px;min-height:220px;overflow:auto;font-family:monospace;font-size:13px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentProvider = "supabase";
+let currentAdapter = null;
+let allTables = [];
+let currentSchema = "public";
+let currentTable = null;
+let currentData = [];
+let editorOriginalData = [];
+let currentColumnsMeta = [];
+let lastError = "";
+let hasUnsavedChanges = false;
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getSupabaseKeyType(key) {
+  if (!key) return "unknown";
+  if (key.includes("service_role")) return "service";
+  return "anon";
+}
+
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    const v = c === "x" ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+function sanitizeRowValues(data, meta) {
+  const uuidCols = new Set();
+  const timestampCols = new Set();
+
+  (meta || []).forEach(m => {
+    const type = (m.data_type || "").toLowerCase();
+    if (type.includes("uuid")) uuidCols.add(m.column_name);
+    if (type.includes("timestamp")) timestampCols.add(m.column_name);
+  });
+
+  data.forEach(row => {
+    Object.entries(row).forEach(([col, val]) => {
+
+      if (uuidCols.has(col)) {
+        if (val === null) {
+          delete row[col];
+        }
+      }
+
+      if (timestampCols.has(col)) {
+        if (val === null || isNaN(Date.parse(val))) {
+          delete row[col];
+        }
+      }
+    });
+  });
+}
+
+function sqlTypeFromInput(typeInput) {
+  const t = (typeInput || "").toLowerCase().trim();
+  if (t.includes("uuid")) return "uuid";
+  if (t === "int" || t.includes("integer")) return "integer";
+  if (t.includes("bool")) return "boolean";
+  if (t.includes("json")) return "jsonb";
+  if (t.includes("time")) return "timestamp with time zone";
+  if (t.includes("float") || t.includes("double")) return "double precision";
+  return "text";
+}
+
+function quoteIdent(name) {
+  return '"' + String(name).replace(/"/g, '""') + '"';
+}
+
+const adapters = {
+  supabase: {
+    client: null,
+    url: null,
+    key: null,
+    keyType: "unknown",
+    async connect() {
+      const url = document.getElementById("sbUrl").value.trim();
+      const key = document.getElementById("sbKey").value.trim();
+      if (!url || !key) throw new Error("Supabase URL and key are required");
+      this.url = url.replace(/\/$/, "");
+      this.key = key;
+      this.keyType = getSupabaseKeyType(key);
+      this.client = supabase.createClient(this.url, key);
+      currentSchema = document.getElementById("schemaSelect").value === "custom"
+        ? (document.getElementById("customSchema").value.trim() || "public")
+        : document.getElementById("schemaSelect").value;
+    },
+    async listTables() {
+      const manual = document.getElementById("tablesInput").value.trim();
+      const mode = document.getElementById("sbMode").value;
+      if (manual || mode === "manual") {
+        return manual ? manual.split(",").map(s => s.trim()).filter(Boolean) : [];
+      }
+      if (mode === "auto_rest") {
+        const res = await fetch(`${this.url}/rest/v1/?apikey=${encodeURIComponent(this.key)}`);
+        if (!res.ok) throw new Error("REST metadata failed");
+        const json = await res.json();
+        return Object.keys(json.paths || {})
+          .map(p => p.replace(/^\//,""))
+          .filter(n => n && !n.startsWith("_"));
+      }
+      const { data, error } = await this.client
+        .from("_tables")
+        .select("name")
+        .eq("schema", currentSchema);
+      if (error) return [];
+      return data ? data.map(t => t.name) : [];
+    },
+    async getRows(table) {
+      let q = this.client.from(table).select("*");
+      if (currentSchema !== "public") q = q.schema(currentSchema);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data || [];
+    },
+    async getColumnMeta(table) {
+      const { data, error } = await this.client
+        .from("information_schema.columns")
+        .select("column_name,data_type,column_default,is_nullable")
+        .eq("table_schema", currentSchema)
+        .eq("table_name", table);
+      if (error) return [];
+      return data || [];
+    },
+    async execSQL(sql) {
+      const url = `${this.url}/rest/v1/rpc/exec_sql`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          apikey: this.key,
+          Authorization: `Bearer ${this.key}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ sql })
+      });
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(`SQL error (${res.status}): ${txt || sql}`);
+      }
+      return res.json().catch(() => null);
+    }
+  },
+  firebase: {
+    db: null,
+    async connect() {
+      const projectId = document.getElementById("fbProjectId").value.trim();
+      const apiKey = document.getElementById("fbApiKey").value.trim();
+      if (!projectId) throw new Error("Firebase Project ID required");
+      firebase.initializeApp({ projectId, apiKey });
+      this.db = firebase.firestore();
+    },
+    async listTables() {
+      const manual = document.getElementById("tablesInput").value.trim();
+      return manual ? manual.split(",").map(s => s.trim()) : ["users", "posts", "comments"];
+    },
+    async getRows(collection) {
+      const snapshot = await this.db.collection(collection).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    },
+    async getColumnMeta() {
+      return [];
+    }
+  }
+};
+
+const providerSelect = document.getElementById("provider");
+const supabaseFields = document.getElementById("supabaseFields");
+const firebaseFields = document.getElementById("firebaseFields");
+const connectBtn = document.getElementById("connectBtn");
+const connectError = document.getElementById("connectError");
+const statusContainer = document.getElementById("statusContainer");
+const statusDot = document.getElementById("statusDot");
+const statusText = document.getElementById("statusText");
+const panelInner = document.getElementById("panelInner");
+const sqlEditorBtn = document.getElementById("sqlEditorBtn");
+const exportBtn = document.getElementById("exportBtn");
+const schemaSelect = document.getElementById("schemaSelect");
+const customSchema = document.getElementById("customSchema");
+
+providerSelect.addEventListener("change", () => {
+  currentProvider = providerSelect.value;
+  supabaseFields.style.display = currentProvider === "supabase" ? "block" : "none";
+  firebaseFields.style.display = currentProvider === "firebase" ? "block" : "none";
+});
+
+schemaSelect.addEventListener("change", (e) => {
+  const v = e.target.value;
+  customSchema.style.display = v === "custom" ? "block" : "none";
+});
+
+connectBtn.addEventListener("click", async () => {
+  connectError.textContent = "";
+  try {
+    currentAdapter = adapters[currentProvider];
+    await currentAdapter.connect();
+    allTables = await currentAdapter.listTables();
+
+    statusDot.classList.add("ok");
+    statusText.textContent = "Connected";
+    document.getElementById("mainSub").textContent = `${currentProvider.toUpperCase()} • ${currentSchema}`;
+
+    panelInner.innerHTML = `
+      <button class="big-btn" onclick="showTablesModal()">View Tables</button>
+      <button class="big-btn" onclick="showTableEditor()">Table Editor</button>
+      <button class="big-btn" onclick="showRLS()">RLS Policies</button>
+      <button class="big-btn" onclick="showSchema()">Schema Explorer</button>
+      <button class="big-btn" onclick="showAuth()">Auth Manager</button>
+    `;
+
+    sqlEditorBtn.disabled = false;
+    exportBtn.disabled = false;
+  } catch (e) {
+    lastError = e.message;
+    connectError.textContent = e.message;
+    statusDot.classList.remove("ok");
+    statusText.textContent = "Error";
+  }
+});
+
+statusContainer.addEventListener("click", () => {
+  let extra = "";
+  if (currentProvider === "supabase") {
+    if (adapters.supabase.keyType === "service") extra = " • Service key";
+    else if (adapters.supabase.keyType === "anon") extra = " • Anon key";
+  }
+  showPopup("Connection Status", lastError ? `Error: ${lastError}` : `Connected to ${currentProvider.toUpperCase()}${extra}`);
+});
+
+function showPopup(title, msg) {
+  const div = document.createElement("div");
+  div.className = "modal show";
+  div.innerHTML = `
+    <div class="modal-content" style="max-width:520px;">
+      <div class="modal-header">
+        <div class="modal-title">${title}</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body" style="padding:40px 30px;text-align:center;font-size:14px;">
+        ${msg}
+      </div>
+    </div>`;
+  document.body.appendChild(div);
+  div.querySelector(".modal-close").onclick = () => div.remove();
+}
+
+function showTablesModal() {
+  if (!allTables.length) return showPopup("Error", "No tables loaded");
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Tables — ${currentSchema}</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>`;
+  document.body.appendChild(modal);
+  const body = modal.querySelector("#modalBody");
+  body.innerHTML = allTables.map(name => `
+    <div onclick="openTableViewer('${name}')" style="padding:16px 22px;background:rgba(35,35,35,0.9);margin:9px 0;border-radius:12px;cursor:pointer;">
+      ${escapeHtml(name)}
+    </div>`).join('');
+  modal.querySelector(".modal-close").onclick = () => modal.remove();
+}
+
+window.openTableViewer = async function(name) {
+  const modal = document.querySelector(".modal.show");
+  if (!modal) return;
+  const body = modal.querySelector(".modal-body");
+  body.innerHTML = `<div class="empty">Loading ${escapeHtml(name)}...</div>`;
+  try {
+    const rows = await currentAdapter.getRows(name);
+    if (!rows.length) {
+      body.innerHTML = `<div class="empty">Table is empty</div>`;
+      return;
+    }
+    const cols = Object.keys(rows[0]);
+    let html = `<div class="data-table-wrapper"><table class="data-table"><thead><tr>`;
+    cols.forEach(c => html += `<th><div class="col-name">${escapeHtml(c)}</div></th>`);
+    html += `</tr></thead><tbody>`;
+    rows.forEach(row => {
+      html += "<tr>";
+      cols.forEach(c => {
+        let val = row[c] ?? "";
+        if (typeof val === "object") val = JSON.stringify(val);
+        html += `<td>${escapeHtml(val)}</td>`;
+      });
+      html += "</tr>";
+    });
+    html += `</tbody></table></div>`;
+    body.innerHTML = html;
+  } catch (e) {
+    body.innerHTML = `<div class="empty" style="color:#f87171;">${escapeHtml(e.message)}</div>`;
+  }
+};
+
+function showTableEditor() {
+  if (!allTables.length) return showPopup("Error", "No tables loaded");
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div style="display:flex;align-items:center;gap:12px;width:100%;">
+          <span class="modal-title">Table Editor</span>
+          <select id="editorTableSelect" style="background:#1f2937;color:white;border:none;padding:8px 12px;border-radius:8px;flex:1;max-width:280px;"></select>
+        </div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="toolbar">
+          <button onclick="addNewRow()">+ Add Row</button>
+          <button onclick="addNewColumn()">+ Add Column</button>
+          <button onclick="deleteSelectedColumn()">Delete Column</button>
+        </div>
+        <div id="editorBody"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const select = modal.querySelector("#editorTableSelect");
+  select.innerHTML = allTables.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  select.onchange = () => loadEditorTable(select.value, modal.querySelector("#editorBody"));
+  loadEditorTable(allTables[0], modal.querySelector("#editorBody"));
+  modal.querySelector(".modal-close").onclick = () => {
+    if (hasUnsavedChanges && !confirm("Close without saving changes?")) return;
+    modal.remove();
+  };
+}
+
+async function loadEditorTable(tableName, container) {
+  currentTable = tableName;
+  container.innerHTML = "<div class='empty'>Loading...</div>";
+  try {
+    const [rows, meta] = await Promise.all([
+      currentAdapter.getRows(tableName),
+      currentAdapter.getColumnMeta(tableName)
+    ]);
+    currentData = rows;
+    editorOriginalData = JSON.parse(JSON.stringify(currentData));
+    currentColumnsMeta = meta;
+    hasUnsavedChanges = false;
+    renderEditableTable(container);
+  } catch (e) {
+    container.innerHTML = `<div class="empty" style="color:#f87171;">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderEditableTable(container) {
+  if (!currentData.length) {
+    container.innerHTML = `<div class="empty">Table is empty</div>`;
+    return;
+  }
+  const cols = Object.keys(currentData[0]);
+  let html = `<div class="data-table-wrapper"><table class="data-table"><thead><tr>`;
+  cols.forEach(c => {
+    const meta = currentColumnsMeta.find(m => m.column_name === c);
+    const type = meta ? meta.data_type : "";
+    html += `<th><div class="col-name">${escapeHtml(c)}</div><div class="col-type">${escapeHtml(type || "")}</div></th>`;
+  });
+  html += `<th><div class="col-name">Actions</div><div class="col-type">row</div></th></tr></thead><tbody>`;
+  currentData.forEach((row, idx) => {
+    html += "<tr>";
+    cols.forEach(c => {
+      let val = row[c] ?? "";
+      if (typeof val === "object") val = JSON.stringify(val);
+      html += `<td contenteditable="true" data-col="${escapeHtml(c)}" data-row="${idx}" oninput="hasUnsavedChanges=true">${escapeHtml(val)}</td>`;
+    });
+    html += `<td><button onclick="deleteEditorRow(${idx})" style="background:#ef4444;color:white;padding:6px 12px;font-size:12px;">Delete</button></td>`;
+    html += "</tr>";
+  });
+  html += `</tbody></table></div>`;
+  html += `<div style="margin-top:24px;display:flex;gap:14px;justify-content:center;"><button onclick="saveEditorChanges()" class="accent-btn">Save Changes</button></div>`;
+  container.innerHTML = html;
+}
+
+function syncEditorDataFromDOM() {
+  const cells = document.querySelectorAll("#editorBody td[contenteditable='true']");
+  cells.forEach(td => {
+    const rowIdx = parseInt(td.getAttribute("data-row"), 10);
+    const col = td.getAttribute("data-col");
+    if (!isNaN(rowIdx) && currentData[rowIdx]) {
+      let val = td.textContent;
+      if (val === "") val = null; // critical: empty string -> null
+      currentData[rowIdx][col] = val;
+    }
+  });
+}
+
+window.deleteEditorRow = (idx) => {
+  if (confirm("Delete this row?")) {
+    currentData.splice(idx, 1);
+    hasUnsavedChanges = true;
+    renderEditableTable(document.querySelector("#editorBody"));
+  }
+};
+
+window.addNewRow = () => {
+  if (!currentData.length) return;
+
+  const newRow = {};
+  const cols = Object.keys(currentData[0]);
+
+  const uuidCols = new Set();
+  const timestampCols = new Set();
+
+  (currentColumnsMeta || []).forEach(m => {
+    const type = (m.data_type || "").toLowerCase();
+    if (type.includes("uuid")) uuidCols.add(m.column_name);
+    if (type.includes("timestamp")) timestampCols.add(m.column_name);
+  });
+
+  cols.forEach(col => {
+    if (uuidCols.has(col)) {
+      newRow[col] = null; // let Postgres generate UUID
+    } else if (timestampCols.has(col)) {
+      newRow[col] = null; // let Postgres generate timestamps
+    } else {
+      newRow[col] = "";
+    }
+  });
+
+  currentData.push(newRow);
+  hasUnsavedChanges = true;
+  renderEditableTable(document.querySelector("#editorBody"));
+};
+
+window.addNewColumn = async () => {
+  const colName = prompt("New column name?");
+  if (!colName) return;
+  const colTypeInput = prompt("Column type (e.g. uuid, text, integer, boolean, jsonb, timestamp):", "text") || "text";
+  const sqlType = sqlTypeFromInput(colTypeInput);
+
+  if (currentProvider === "supabase" && adapters.supabase.keyType === "service") {
+    try {
+      const fullTable = `${quoteIdent(currentSchema)}.${quoteIdent(currentTable)}`;
+      const sql = `alter table ${fullTable} add column ${quoteIdent(colName)} ${sqlType};`;
+      await adapters.supabase.execSQL(sql);
+      currentColumnsMeta.push({
+        column_name: colName,
+        data_type: sqlType,
+        column_default: null,
+        is_nullable: "YES"
+      });
+    } catch (e) {
+      showPopup("Error", escapeHtml(e.message || "Failed to add column in Supabase."));
+      return;
+    }
+  } else if (currentProvider === "supabase") {
+    showPopup("Info", "Adding columns requires a service_role key. Column will not be created in Supabase.");
+    currentColumnsMeta.push({
+      column_name: colName,
+      data_type: sqlType,
+      column_default: null,
+      is_nullable: "YES"
+    });
+  }
+
+  currentData.forEach(row => row[colName] = "");
+  hasUnsavedChanges = true;
+  renderEditableTable(document.querySelector("#editorBody"));
+};
+
+window.deleteSelectedColumn = async () => {
+  const colName = prompt("Column to delete?");
+  if (!colName) return;
+
+  if (currentProvider === "supabase" && adapters.supabase.keyType === "service") {
+    try {
+      const fullTable = `${quoteIdent(currentSchema)}.${quoteIdent(currentTable)}`;
+      const sql = `alter table ${fullTable} drop column ${quoteIdent(colName)};`;
+      await adapters.supabase.execSQL(sql);
+    } catch (e) {
+      showPopup("Error", escapeHtml(e.message || "Failed to drop column in Supabase."));
+      return;
+    }
+  } else if (currentProvider === "supabase") {
+    showPopup("Info", "Dropping columns requires a service_role key. Column will not be removed in Supabase.");
+  }
+
+  currentData.forEach(row => delete row[colName]);
+  currentColumnsMeta = currentColumnsMeta.filter(c => c.column_name !== colName);
+  hasUnsavedChanges = true;
+  renderEditableTable(document.querySelector("#editorBody"));
+};
+
+window.saveEditorChanges = async () => {
+  syncEditorDataFromDOM();
+  sanitizeRowValues(currentData, currentColumnsMeta);
+
+  if (currentProvider !== "supabase") {
+    hasUnsavedChanges = false;
+    showPopup("Info", "Saving is only implemented for Supabase.");
+    return;
+  }
+  if (!currentTable) {
+    showPopup("Error", "No table selected.");
+    return;
+  }
+  const client = adapters.supabase.client;
+  const hasId = currentData[0] && Object.prototype.hasOwnProperty.call(currentData[0], "id");
+  const pk = hasId ? "id" : null;
+  try {
+    if (pk) {
+      const originalIds = new Set(editorOriginalData.map(r => r.id));
+      const currentIds = new Set(currentData.map(r => r.id));
+      const deletedIds = [...originalIds].filter(id => !currentIds.has(id));
+      if (deletedIds.length) {
+        const { error: delError } = await client.from(currentTable).delete().in("id", deletedIds);
+        if (delError) throw delError;
+      }
+      const { error } = await client.from(currentTable).upsert(currentData, { onConflict: pk });
+      if (error) throw error;
+    } else {
+      const { error } = await client.from(currentTable).upsert(currentData);
+      if (error) throw error;
+    }
+    editorOriginalData = JSON.parse(JSON.stringify(currentData));
+    hasUnsavedChanges = false;
+    showPopup("Success", "Changes saved to Supabase.");
+  } catch (e) {
+    showPopup("Error", escapeHtml(e.message || "Failed to save changes."));
+  }
+};
+
+function showRLS() {
+  if (currentProvider !== "supabase") {
+    return showPopup("RLS Policies", "RLS is only available for Supabase projects.");
+  }
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">RLS Policies</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="rlsKeyInfo" style="font-size:12px;color:#9ca3af;margin-bottom:10px;"></div>
+        <select id="rlsTableSelect" style="width:100%;padding:10px;margin-bottom:16px;">
+          ${allTables.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}
+        </select>
+        <div id="rlsContent" class="empty">Select a table above.</div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const keyInfo = modal.querySelector("#rlsKeyInfo");
+  if (adapters.supabase.keyType === "service") {
+    keyInfo.textContent = "Service key: RLS is bypassed for this client.";
+  } else if (adapters.supabase.keyType === "anon") {
+    keyInfo.textContent = "Anon key: RLS applies to queries.";
+  } else {
+    keyInfo.textContent = "Key type unknown.";
+  }
+
+  const select = modal.querySelector("#rlsTableSelect");
+  const content = modal.querySelector("#rlsContent");
+
+  async function inspectTableRLS(tableName) {
+    if (adapters.supabase.keyType === "service") {
+      content.innerHTML = `<div class="empty">RLS not enforced for this client.</div>`;
+      return;
+    }
+    content.innerHTML = `<div class="empty">Checking ${escapeHtml(tableName)}...</div>`;
+    try {
+      const url = `${adapters.supabase.url}/rest/v1/pg_policies?select=tablename,policyname&tablename=eq.${encodeURIComponent(tableName)}`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: adapters.supabase.key,
+          Authorization: `Bearer ${adapters.supabase.key}`
+        }
+      });
+      if (!res.ok) {
+        if (res.status === 404) {
+          content.innerHTML = `<div class="empty">RLS not enabled.</div>`;
+        } else if (res.status === 401 || res.status === 403) {
+          content.innerHTML = `<div class="empty">RLS enabled but not introspectable with this key.</div>`;
+        } else {
+          content.innerHTML = `<div class="empty" style="color:#f87171;">Failed to inspect RLS (HTTP ${res.status}).</div>`;
+        }
+        return;
+      }
+      const data = await res.json();
+      if (!data.length) {
+        content.innerHTML = `<div class="empty">RLS not enabled.</div>`;
+      } else {
+        let html = `<div style="padding:10px 0;">`;
+        html += `<div style="font-size:14px;margin-bottom:8px;">RLS enabled for ${escapeHtml(tableName)}</div>`;
+        html += `<ul style="font-size:13px;color:#e5e7eb;list-style:disc;padding-left:22px;">`;
+        data.forEach(p => {
+          html += `<li>${escapeHtml(p.policyname || "Policy")}</li>`;
+        });
+        html += `</ul></div>`;
+        content.innerHTML = html;
+      }
+    } catch (e) {
+      content.innerHTML = `<div class="empty" style="color:#f87171;">${escapeHtml(e.message)}</div>`;
+    }
+  }
+
+  select.addEventListener("change", () => inspectTableRLS(select.value));
+  if (allTables.length) inspectTableRLS(allTables[0]);
+
+  modal.querySelector(".modal-close").onclick = () => modal.remove();
+}
+
+async function fetchSchemaDetails() {
+  if (currentProvider !== "supabase") {
+    return { cascades: [], functions: [] };
+  }
+  const url = adapters.supabase.url;
+  const key = adapters.supabase.key;
+  const headers = { apikey: key, Authorization: `Bearer ${key}` };
+  let cascades = [];
+  let functions = [];
+  try {
+    const cascRes = await fetch(`${url}/rest/v1/pg_constraint?select=conname,contype`, { headers });
+    if (cascRes.ok) {
+      const data = await cascRes.json();
+      cascades = data.filter(c => c.contype === "f");
+    }
+  } catch (_) {}
+  try {
+    const funcRes = await fetch(`${url}/rest/v1/pg_proc?select=proname`, { headers });
+    if (funcRes.ok) {
+      functions = await funcRes.json();
+    }
+  } catch (_) {}
+  return { cascades, functions };
+}
+
+function showSchema() {
+  if (currentProvider !== "supabase") {
+    showPopup("Schema Explorer", `Schema: ${escapeHtml(currentSchema)}<br>Tables: ${allTables.length}`);
+    return;
+  }
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Schema Explorer</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div id="schemaContent" class="empty">Loading schema...</div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const content = modal.querySelector("#schemaContent");
+  (async () => {
+    const { cascades, functions } = await fetchSchemaDetails();
+    let html = `<div style="font-size:14px;margin-bottom:10px;">Schema: ${escapeHtml(currentSchema)}</div>`;
+    html += `<div style="font-size:13px;margin-bottom:16px;">Tables: ${allTables.length}</div>`;
+    html += `<div style="margin-bottom:18px;"><div style="font-size:13px;margin-bottom:6px;">Cascades</div>`;
+    if (cascades.length) {
+      html += `<ul style="font-size:13px;color:#e5e7eb;list-style:disc;padding-left:22px;">`;
+      cascades.forEach(c => {
+        html += `<li>${escapeHtml(c.conname)}</li>`;
+      });
+      html += `</ul>`;
+    } else {
+      html += `<div style="font-size:13px;color:#9ca3af;">No cascades or not introspectable.</div>`;
+    }
+    html += `</div>`;
+    html += `<div><div style="font-size:13px;margin-bottom:6px;">Functions</div>`;
+    if (functions.length) {
+      html += `<ul style="font-size:13px;color:#e5e7eb;list-style:disc;padding-left:22px;max-height:260px;overflow:auto;">`;
+      functions.forEach(f => {
+        html += `<li>${escapeHtml(f.proname)}</li>`;
+      });
+      html += `</ul>`;
+    } else {
+      html += `<div style="font-size:13px;color:#9ca3af;">No functions or not introspectable.</div>`;
+    }
+    html += `</div>`;
+    content.innerHTML = html;
+  })();
+  modal.querySelector(".modal-close").onclick = () => modal.remove();
+}
+
+function showAuth() {
+  if (currentProvider !== "supabase") {
+    showPopup("Auth Manager", "Auth management is only available for Supabase projects.");
+    return;
+  }
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Auth Manager</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px;color:#9ca3af;margin-bottom:12px;" id="authKeyInfo"></div>
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+          <button id="authListBtn">List Users</button>
+          <button id="authCreateBtn">Create User</button>
+        </div>
+        <div id="authArea" style="font-size:13px;"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+  const keyInfo = modal.querySelector("#authKeyInfo");
+  if (adapters.supabase.keyType === "service") {
+    keyInfo.textContent = "Service key: full admin access to Auth.";
+  } else if (adapters.supabase.keyType === "anon") {
+    keyInfo.textContent = "Anon key: can sign up new users, cannot list all users.";
+  } else {
+    keyInfo.textContent = "Key type unknown.";
+  }
+  const area = modal.querySelector("#authArea");
+  const client = adapters.supabase.client;
+
+  modal.querySelector("#authListBtn").onclick = async () => {
+    if (adapters.supabase.keyType !== "service") {
+      area.innerHTML = `<div class="empty">Listing users requires a service key.</div>`;
+      return;
+    }
+    area.innerHTML = `<div class="empty">Loading users...</div>`;
+    try {
+      const { data, error } = await client.auth.admin.listUsers();
+      if (error) throw error;
+      if (!data.users.length) {
+        area.innerHTML = `<div class="empty">No users.</div>`;
+        return;
+      }
+      let html = `<div style="max-height:360px;overflow:auto;"><table class="data-table"><thead><tr><th><div class="col-name">ID</div></th><th><div class="col-name">Email</div></th><th><div class="col-name">Phone</div></th></tr></thead><tbody>`;
+      data.users.forEach(u => {
+        html += `<tr><td>${escapeHtml(u.id)}</td><td>${escapeHtml(u.email || "")}</td><td>${escapeHtml(u.phone || "")}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+      area.innerHTML = html;
+    } catch (e) {
+      area.innerHTML = `<div class="empty" style="color:#f87171;">${escapeHtml(e.message)}</div>`;
+    }
+  };
+
+  modal.querySelector("#authCreateBtn").onclick = () => {
+    area.innerHTML = `
+      <div style="display:grid;gap:8px;max-width:420px;">
+        <input id="authEmail" placeholder="Email" style="padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;">
+        <input id="authPassword" placeholder="Password (optional for service key)" type="password" style="padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;">
+        <input id="authPhone" placeholder="Phone (optional)" style="padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;">
+        <input id="authUsername" placeholder="Username (stored in user_metadata)" style="padding:8px 10px;border-radius:8px;border:1px solid #4b5563;background:#020617;color:#e5e7eb;">
+        <label class="check-row">
+          <input id="authEmailConfirmed" class="check-input" type="checkbox">
+          <span class="check-box">✓</span>
+          <span>Email confirmed</span>
+        </label>
+        <label class="check-row">
+          <input id="authPhoneConfirmed" class="check-input" type="checkbox">
+          <span class="check-box">✓</span>
+          <span>Phone confirmed</span>
+        </label>
+      </div>
+      <button id="authSubmitBtn" class="accent-btn" style="margin-top:12px;">Create</button>
+      <div id="authStatus" style="margin-top:10px;font-size:12px;color:#9ca3af;"></div>
+    `;
+    const status = document.getElementById("authStatus");
+    document.getElementById("authSubmitBtn").onclick = async () => {
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const phone = document.getElementById("authPhone").value.trim();
+      const username = document.getElementById("authUsername").value.trim();
+      const emailConfirmed = document.getElementById("authEmailConfirmed").checked;
+      const phoneConfirmed = document.getElementById("authPhoneConfirmed").checked;
+
+      if (!email) {
+        status.textContent = "Email is required.";
+        return;
+      }
+      status.textContent = "Creating user...";
+      try {
+        if (adapters.supabase.keyType === "service") {
+          const payload = {
+            email,
+            password: password || undefined,
+            phone: phone || undefined,
+            email_confirm: emailConfirmed,
+            phone_confirm: phoneConfirmed,
+            user_metadata: {}
+          };
+          if (username) payload.user_metadata.username = username;
+          const { data, error } = await client.auth.admin.createUser(payload);
+          if (error) throw error;
+          status.textContent = `User created: ${data.user.email || data.user.id}`;
+        } else {
+          const { data, error } = await client.auth.signUp({
+            email,
+            password,
+            phone: phone || undefined,
+            options: {
+              data: username ? { username } : {}
+            }
+          });
+          if (error) throw error;
+          status.textContent = `User signed up: ${data.user.email || data.user.id}`;
+        }
+      } catch (e) {
+        status.textContent = e.message || "Failed to create user.";
+      }
+    };
+  };
+
+  modal.querySelector(".modal-close").onclick = () => modal.remove();
+}
+
+function showExportModal() {
+  if (!allTables.length) return showPopup("Error", "No tables available to export.");
+  const modal = document.createElement("div");
+  modal.className = "modal show";
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Export Data</div>
+        <button class="modal-close">×</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size:12px;color:#9ca3af;margin-bottom:10px;">
+          Choose tables to export or download all.
+        </div>
+        <div id="exportTableList" style="max-height:260px;overflow:auto;margin-bottom:18px;">
+          ${allTables.map(t => `
+            <label class="check-row">
+              <input class="check-input" type="checkbox" value="${escapeHtml(t)}">
+              <span class="check-box">✓</span>
+              <span>${escapeHtml(t)}</span>
+            </label>`).join('')}
+        </div>
+        <div style="display:flex;gap:12px;justify-content:flex-end;">
+          <button id="exportAllBtn" class="accent-btn">Download All</button>
+          <button id="exportSelectedBtn">Download Selected</button>
+        </div>
+        <div id="exportStatus" style="margin-top:12px;font-size:12px;color:#9ca3af;"></div>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const status = modal.querySelector("#exportStatus");
+  const list = modal.querySelector("#exportTableList");
+  const getSelectedTables = () =>
+    Array.from(list.querySelectorAll("input[type=checkbox]:checked")).map(cb => cb.value);
+
+  async function exportTables(tables) {
+    if (!tables.length) {
+      status.textContent = "No tables selected.";
+      return;
+    }
+    status.textContent = "Exporting...";
+    for (const table of tables) {
+      try {
+        const rows = await currentAdapter.getRows(table);
+        if (!rows.length) continue;
+        const cols = Object.keys(rows[0]);
+        const csvRows = [];
+        csvRows.push(cols.join(","));
+        rows.forEach(r => {
+          csvRows.push(cols.map(c => {
+            const v = r[c] == null ? "" : String(r[c]).replace(/"/g, '""');
+            return `"${v}"`;
+          }).join(","));
+        });
+        const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${table}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) {
+        console.error("Export error for table", table, e);
+      }
+    }
+    status.textContent = "Export complete.";
+  }
+
+  modal.querySelector("#exportAllBtn").addEventListener("click", () => {
+    exportTables(allTables.slice());
+  });
+  modal.querySelector("#exportSelectedBtn").addEventListener("click", () => {
+    exportTables(getSelectedTables());
+  });
+  modal.querySelector(".modal-close").onclick = () => modal.remove();
+}
+
+exportBtn.addEventListener("click", showExportModal);
+
+sqlEditorBtn.addEventListener("click", () => {
+  document.getElementById("sqlModal").classList.add("show");
+});
+
+document.getElementById("runSqlBtn").addEventListener("click", async () => {
+  const q = document.getElementById("sqlTextarea").value.trim();
+  const out = document.getElementById("sqlResult");
+  if (!q) {
+    out.innerHTML = "";
+    return;
+  }
+  if (currentProvider !== "supabase") {
+    out.innerHTML = "<pre>SQL execution only supported for Supabase.</pre>";
+    return;
+  }
+  const m = q.match(/^select\s+\*\s+from\s+([a-zA-Z0-9_\.]+)(?:\s+limit\s+(\d+))?\s*;?$/i);
+  if (!m) {
+    out.innerHTML = "<pre>Only simple queries supported: SELECT * FROM schema.table LIMIT n;</pre>";
+    return;
+  }
+  let fullName = m[1];
+  let limit = m[2] ? parseInt(m[2], 10) : 100;
+  let schema = currentSchema;
+  let table = fullName;
+  if (fullName.includes(".")) {
+    const parts = fullName.split(".");
+    schema = parts[0];
+    table = parts[1];
+  }
+  try {
+    let client = adapters.supabase.client;
+    let qBuilder = client.from(table).select("*").limit(limit);
+    if (schema !== "public") qBuilder = qBuilder.schema(schema);
+    const { data, error } = await qBuilder;
+    if (error) throw error;
+    out.innerHTML = `<pre>${escapeHtml(JSON.stringify(data, null, 2))}</pre>`;
+  } catch (e) {
+    out.innerHTML = `<pre>${escapeHtml(e.message)}</pre>`;
+  }
+});
+
+document.getElementById("clearSqlBtn").addEventListener("click", () => {
+  document.getElementById("sqlTextarea").value = "";
+  document.getElementById("sqlResult").innerHTML = "";
+});
+
+document.querySelectorAll(".modal-close").forEach(btn =>
+  btn.addEventListener("click", () => {
+    const modal = btn.closest(".modal");
+    if (modal.id === "sqlModal") {
+      modal.classList.remove("show");
+    } else {
+      modal.remove();
+    }
+  })
+);
+</script>
+</body>
+</html>
